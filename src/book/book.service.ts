@@ -9,7 +9,7 @@ import { Book } from './schema/book.schema';
 import { Book2 } from './schema/boos.schema2';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
-
+import { Query } from 'express-serve-static-core';
 @Injectable()
 export class BookService {
   constructor(
@@ -32,11 +32,39 @@ export class BookService {
     }
   }
 
-  async findAll(): Promise<Book2[]> {
+  async findAll(query: Query) {
     try {
+      const resultPerPage = Number(query.limit) || 2;
+      const currentPage = Number(query.page) || 1;
+      const skip = resultPerPage * (currentPage - 1);
+      console.log('query', query);
+      const keyword = query.keyword
+        ? {
+            title: {
+              $regex: query.keyword, // partial match
+              $options: 'i', // case insensitive
+            },
+          }
+        : {};
+
+      console.log(keyword);
       //   const books = await this.bookModel.find({});
-      const books = await this.bookModel2.find({});
-      return books;
+      const books = await this.bookModel2
+        .find({ ...keyword })
+        .limit(resultPerPage)
+        .skip(skip);
+
+      const totalData = await this.bookModel2.countDocuments({ ...keyword });
+
+      const totalPages = Math.ceil(totalData / resultPerPage) || 1;
+
+      return {
+        data: books,
+        totalData,
+        resultPerPage,
+        currentPage,
+        totalPages,
+      };
     } catch (error) {
       throw new NotFoundException('No books found');
     }

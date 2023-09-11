@@ -2,27 +2,43 @@ import {
   Controller,
   Get,
   Post,
-  Param,
-  Body,
   Put,
-  Res,
-  HttpStatus,
   Delete,
-  Patch,
+  Res,
+  Param,
+  Query,
+  Body,
+  HttpStatus,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { BookService } from './book.service';
-import { Book } from './schema/book.schema';
+
 import { Book2 } from './schema/boos.schema2';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
+import { Query as ExpressQuery } from 'express-serve-static-core';
 
 @Controller('books')
 export class BookController {
   constructor(private bookService: BookService) {}
   @Get()
-  async getAllBooks(): Promise<Book2[]> {
-    return await this.bookService.findAll();
+  async getAllBooks(
+    @Query()
+    query: ExpressQuery,
+    @Res()
+    res: Response,
+  ) {
+    const { data, totalData, resultPerPage, currentPage, totalPages } =
+      await this.bookService.findAll(query);
+    res.status(HttpStatus.OK).json({
+      meta: {
+        totalData,
+        resultPerPage,
+        currentPage,
+        totalPages,
+      },
+      data,
+    });
   }
   @Post('new')
   async createBook(
